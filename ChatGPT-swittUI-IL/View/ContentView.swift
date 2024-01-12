@@ -1,49 +1,28 @@
-//
-//  ContentView.swift
-//  ChatGPT-swittUI-IL
-//
-//  Created by Иван Легенький on 12.01.2024.
-//
-
 import SwiftUI
 import Combine
 
 struct ContentView: View {
-    @State var chatMessages: [ChatMessage] = []
-    @State var messageText: String = ""
+    @State private var chatMessages: [ChatMessage] = []
+    @State private var messageText: String = ""
     @State private var isLoading: Bool = false
     
     private let openAIViewModel = OpenAIViewModel()
     
-    @State var cancellables = Set<AnyCancellable>()
-    
+    @State private var cancellables: Set<AnyCancellable> = []
+
     var body: some View {
         ScrollView {
             LazyVStack {
                 ForEach(chatMessages, id: \.id) { message in
-                   messageView(message: message)
+                    messageView(message: message)
                         .padding(.horizontal, 20)
                         .padding(.top, 5)
                 }
             }
         }
         HStack {
-            TextField("Enter a message", text: $messageText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 10)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(12)
-            
-            Button {
-                sendMSG()
-            } label: {
-                Text("Send")
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 25)
-                    .padding(.vertical, 10)
-                    .background(Color.green)
-                    .cornerRadius(12)
-            }
+            messageInputView()
+            sendButton()
         }
         .padding(.horizontal, 20)
     }
@@ -59,20 +38,32 @@ struct ContentView: View {
                     speed: 0.07,
                     isStarted: $isLoading
                 )
-                .padding(10)
-                .foregroundColor(.black)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(16)
+                .messageBubbleStyle(isGPT: isGPT)
             } else {
                 Text(message.content)
-                    .padding(10)
-                    .foregroundColor(.white)
-                    .background(Color.blue)
-                    .cornerRadius(16)
+                    .messageBubbleStyle(isGPT: isGPT)
             }
            
-         
             if isGPT { Spacer() }
+        }
+    }
+    
+    func messageInputView() -> some View {
+        TextField("Enter a message", text: $messageText)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(12)
+    }
+    
+    func sendButton() -> some View {
+        Button(action: sendMSG) {
+            Text("Send")
+                .foregroundColor(.white)
+                .padding(.horizontal, 25)
+                .padding(.vertical, 10)
+                .background(Color.green)
+                .cornerRadius(12)
         }
     }
     
@@ -81,29 +72,37 @@ struct ContentView: View {
             isLoading = true
         }
         let myMSG = ChatMessage(id: UUID().uuidString, content: messageText, dateCreated: Date(), sender: .myself)
-
         let AIMessage = [AIMessage(role: "user", content: messageText)]
         
-     
         chatMessages.append(myMSG)
         
-       
-        openAIViewModel.sendMessage(message: AIMessage).sink { completion in
-            switch completion {
-            case .finished:
-                print("Finished successful")
-            case .failure(let error):
-                print("ERRROR \(error)")
-            }
-        } receiveValue: { response in
-            print("MY RESP \(response)")
-            guard let textResponse = response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
-            let gptMSG = ChatMessage(id: response.id, content: textResponse, dateCreated: Date(), sender: .chatGpt)
-            
-            chatMessages.append(gptMSG)
-        }
-        .store(in: &cancellables)
+        openAIViewModel.sendMessage(message: AIMessage)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .finished:
+                    print("Finished successful")
+                case .failure(let error):
+                    print("ERROR \(error)")
+                }
+            }, receiveValue: { response in
+                print("MY RESP \(response)")
+                guard let textResponse = response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+                let gptMSG = ChatMessage(id: response.id, content: textResponse, dateCreated: Date(), sender: .chatGpt)
+                
+                chatMessages.append(gptMSG)
+            })
+            .store(in: &cancellables)
+        
         messageText = ""
+    }
+}
+
+extension View {
+    func messageBubbleStyle(isGPT: Bool) -> some View {
+        self.padding(10)
+            .foregroundColor(isGPT ? Color.black : Color.white)
+            .background(isGPT ? Color.gray.opacity(0.1) : Color.blue)
+            .cornerRadius(16)
     }
 }
 
