@@ -57,14 +57,16 @@ struct ContentView: View {
     }
     
     func sendButton() -> some View {
-        Button(action: sendMSG) {
+        let isDisabled = isLoading || messageText == ""
+        return Button(action: sendMSG) {
             Text("Send")
                 .foregroundColor(.white)
                 .padding(.horizontal, 25)
                 .padding(.vertical, 10)
-                .background(Color.green)
+                .background(isDisabled ? Color.gray : Color.green)
                 .cornerRadius(12)
         }
+        .disabled(isDisabled)
     }
     
     func sendMSG() {
@@ -88,8 +90,13 @@ struct ContentView: View {
                 print("MY RESP \(response)")
                 guard let textResponse = response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
                 let gptMSG = ChatMessage(id: response.id, content: textResponse, dateCreated: Date(), sender: .chatGpt)
-                
+
                 chatMessages.append(gptMSG)
+                let animationDuration = Double(textResponse.count) * 0.07
+                         
+                DispatchQueue.main.asyncAfter(deadline: .now() + animationDuration) {
+                    isLoading = false
+                }
             })
             .store(in: &cancellables)
         

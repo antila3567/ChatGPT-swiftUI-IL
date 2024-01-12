@@ -16,7 +16,7 @@ struct TypeWriterView: View {
     @Binding var isStarted: Bool
     @State private var textArray: String = ""
     @State private var processedIDs: Set<String> = Set()
-    @State private var cancellables: Set<AnyCancellable> = []  // Доданий рядок
+    @State private var cancellables: Set<AnyCancellable> = []
 
     init(_ text: String, speed: TimeInterval = 0.1, isStarted: Binding<Bool>) {
         self.text = text
