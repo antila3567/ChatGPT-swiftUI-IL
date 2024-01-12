@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct TypeWriterView: View {
-
     private let text: String
     private let speed: TimeInterval
     @Binding var isStarted: Bool
@@ -31,22 +30,22 @@ struct TypeWriterView: View {
     }
 
     private func startAnimate() {
-           DispatchQueue.global().async {
-               guard !processedIDs.contains(text) else {
-                   return
-               }
+        guard !processedIDs.contains(text) else {
+            return
+        }
 
-               for char in self.text {
-                   Thread.sleep(forTimeInterval: self.speed)
-                   DispatchQueue.main.async {
-                       self.textArray += char.description
-                   }
-               }
+        DispatchQueue.global().async {
+            for char in self.text {
+                Thread.sleep(forTimeInterval: self.speed)
+                DispatchQueue.main.async {
+                    self.textArray += char.description
+                }
+            }
 
-               DispatchQueue.main.async {
-                   self.processedIDs.insert(text)
-               }
-           }
-       }
-
+            DispatchQueue.main.async {
+                self.processedIDs.insert(text)
+            }
+        }
+    }
 }
+
